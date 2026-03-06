@@ -10,8 +10,12 @@ class TestChunkBuilder:
     """Tests for ChunkBuilder."""
 
     @pytest.fixture
-    def chunk_builder(self):
-        return ChunkBuilder(max_tokens=100, min_tokens=20, overlap_tokens=10)
+    def chunk_builder(self, monkeypatch):
+        """Create a ChunkBuilder with test settings."""
+        monkeypatch.setattr("src.config.settings.chunk_max_tokens", 100)
+        monkeypatch.setattr("src.config.settings.chunk_min_tokens", 20)
+        monkeypatch.setattr("src.config.settings.chunk_overlap_tokens", 10)
+        return ChunkBuilder()
 
     def test_build_single_chunk(self, chunk_builder: ChunkBuilder, sample_document_graph: DocumentGraph):
         chunks = chunk_builder.build_chunks(sample_document_graph)
@@ -23,8 +27,11 @@ class TestChunkBuilder:
             assert len(chunk.block_ids) > 0
             assert chunk.pdf_page >= 0
 
-    def test_chunks_respect_token_limit(self, sample_document_graph: DocumentGraph):
-        builder = ChunkBuilder(max_tokens=50, min_tokens=10, overlap_tokens=0)
+    def test_chunks_respect_token_limit(self, monkeypatch, sample_document_graph: DocumentGraph):
+        monkeypatch.setattr("src.config.settings.chunk_max_tokens", 50)
+        monkeypatch.setattr("src.config.settings.chunk_min_tokens", 10)
+        monkeypatch.setattr("src.config.settings.chunk_overlap_tokens", 0)
+        builder = ChunkBuilder()
         chunks = builder.build_chunks(sample_document_graph)
 
         for chunk in chunks:

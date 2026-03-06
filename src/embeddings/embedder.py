@@ -1,11 +1,9 @@
 """Generate embeddings for text chunks."""
 
-import os
-from typing import Optional
-
 import numpy as np
 from openai import OpenAI
 
+from src.config import settings
 from src.models.schema import Chunk
 
 
@@ -13,27 +11,19 @@ class Embedder:
     """Generate embeddings using OpenAI's embedding models.
 
     This class is designed to be swappable with other embedding providers.
+    All configuration is loaded from settings.
     """
 
-    def __init__(
-        self,
-        model: str = "text-embedding-3-small",
-        api_key: Optional[str] = None,
-        dimensions: int = 1536,
-        batch_size: int = 100,
-    ):
+    def __init__(self, batch_size: int = 100):
         """Initialize the embedder.
 
         Args:
-            model: OpenAI embedding model name.
-            api_key: OpenAI API key (defaults to OPENAI_API_KEY env var).
-            dimensions: Embedding dimensions.
             batch_size: Maximum number of texts to embed in one API call.
         """
-        self.model = model
-        self.dimensions = dimensions
+        self.model = settings.openai_embedding_model
+        self.dimensions = settings.embedding_dimensions
         self.batch_size = batch_size
-        self._client = OpenAI(api_key=api_key or os.getenv("OPENAI_API_KEY"))
+        self._client = OpenAI(api_key=settings.openai_api_key)
 
     def embed_text(self, text: str) -> list[float]:
         """Generate embedding for a single text.

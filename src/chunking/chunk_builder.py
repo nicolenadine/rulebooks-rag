@@ -1,10 +1,10 @@
 """Build semantic chunks from document blocks."""
 
-from typing import Optional
 from uuid import uuid4
 
 import tiktoken
 
+from src.config import settings
 from src.models.schema import Block, BlockType, BoundingBox, Chunk, DocumentGraph
 
 
@@ -16,29 +16,18 @@ class ChunkBuilder:
     - Mini-page boundaries
     - Maximum token limits
     - Reading order
+
+    All configuration is loaded from settings.
     """
 
-    def __init__(
-        self,
-        max_tokens: int = 512,
-        min_tokens: int = 50,
-        overlap_tokens: int = 50,
-        model: str = "text-embedding-3-small",
-    ):
-        """Initialize the chunk builder.
-
-        Args:
-            max_tokens: Maximum tokens per chunk.
-            min_tokens: Minimum tokens before starting a new chunk on heading.
-            overlap_tokens: Number of tokens to overlap between chunks.
-            model: Tokenizer model name (for counting tokens).
-        """
-        self.max_tokens = max_tokens
-        self.min_tokens = min_tokens
-        self.overlap_tokens = overlap_tokens
+    def __init__(self):
+        """Initialize the chunk builder using settings."""
+        self.max_tokens = settings.chunk_max_tokens
+        self.min_tokens = settings.chunk_min_tokens
+        self.overlap_tokens = settings.chunk_overlap_tokens
 
         try:
-            self._tokenizer = tiktoken.encoding_for_model(model)
+            self._tokenizer = tiktoken.encoding_for_model(settings.openai_embedding_model)
         except KeyError:
             self._tokenizer = tiktoken.get_encoding("cl100k_base")
 

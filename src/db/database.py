@@ -1,6 +1,5 @@
 """Database connection and operations."""
 
-import os
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Generator, Optional
@@ -10,6 +9,7 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
 
+from src.config import settings
 from src.db.models import (
     Base,
     BlockModel,
@@ -22,18 +22,14 @@ from src.models.schema import Block, BoundingBox, Chunk, Document, DocumentGraph
 
 
 class Database:
-    """Database interface for the document graph."""
+    """Database interface for the document graph.
 
-    def __init__(self, connection_string: Optional[str] = None):
-        """Initialize database connection.
+    All configuration is loaded from settings.
+    """
 
-        Args:
-            connection_string: PostgreSQL connection string.
-                Defaults to DATABASE_URL environment variable.
-        """
-        self.connection_string = connection_string or os.getenv(
-            "DATABASE_URL", "postgresql://localhost:5432/rulebook_rag"
-        )
+    def __init__(self):
+        """Initialize database connection using settings."""
+        self.connection_string = settings.postgres_url
         self._engine: Optional[Engine] = None
         self._session_factory: Optional[sessionmaker] = None
 

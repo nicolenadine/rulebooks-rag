@@ -1,8 +1,17 @@
 """Pytest configuration and fixtures."""
 
+import os
 from uuid import uuid4
 
 import pytest
+
+# Set test environment variables before importing settings
+os.environ.setdefault("OPENAI_API_KEY", "test-api-key-for-testing")
+os.environ.setdefault("POSTGRES_HOST", "localhost")
+os.environ.setdefault("POSTGRES_PORT", "5432")
+os.environ.setdefault("POSTGRES_DB", "rulebook_rag_test")
+os.environ.setdefault("POSTGRES_USER", "test")
+os.environ.setdefault("POSTGRES_PASSWORD", "test")
 
 from src.models.schema import Block, BlockType, BoundingBox, Chunk, Document, DocumentGraph, Edge, EdgeType
 

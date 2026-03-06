@@ -1,16 +1,19 @@
 """RAG pipeline for question answering with citations."""
 
-import os
 from typing import Optional
 
 from openai import OpenAI
 
+from src.config import settings
 from src.models.schema import Block, BoundingBox, Chunk, Citation, DocumentGraph, QAResponse
 from src.retrieval.retriever import Retriever
 
 
 class RAGPipeline:
-    """RAG pipeline for answering questions about rulebooks."""
+    """RAG pipeline for answering questions about rulebooks.
+
+    All configuration is loaded from settings.
+    """
 
     SYSTEM_PROMPT = """You are a helpful assistant that answers questions about board game rules.
 
@@ -31,21 +34,17 @@ Format your response as:
     def __init__(
         self,
         retriever: Retriever,
-        model: str = "gpt-4o",
-        api_key: Optional[str] = None,
         graph: Optional[DocumentGraph] = None,
     ):
         """Initialize the RAG pipeline.
 
         Args:
             retriever: The retriever for finding relevant chunks.
-            model: OpenAI model name for answer generation.
-            api_key: OpenAI API key (defaults to OPENAI_API_KEY env var).
             graph: Document graph for block lookups.
         """
         self.retriever = retriever
-        self.model = model
-        self._client = OpenAI(api_key=api_key or os.getenv("OPENAI_API_KEY"))
+        self.model = settings.openai_chat_model
+        self._client = OpenAI(api_key=settings.openai_api_key)
         self._graph = graph
 
     def answer(

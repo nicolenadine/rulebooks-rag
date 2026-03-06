@@ -1,16 +1,15 @@
 #!/usr/bin/env python3
 """CLI for the Rulebook RAG system."""
 
-import sys
 from pathlib import Path
 
 import click
-from dotenv import load_dotenv
 from rich.console import Console
 from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from src.chunking.chunk_builder import ChunkBuilder
+from src.config import settings  # noqa: F401 - loads .env on import
 from src.embeddings.embedder import Embedder
 from src.graph.graph_builder import GraphBuilder
 from src.ingestion.mini_page_detector import MiniPageDetector
@@ -18,8 +17,6 @@ from src.ingestion.parse_loader import ParseLoader
 from src.qa.rag_pipeline import RAGPipeline
 from src.retrieval.retriever import Retriever
 from src.retrieval.vector_index import VectorIndex
-
-load_dotenv()
 
 console = Console()
 
