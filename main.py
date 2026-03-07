@@ -17,8 +17,10 @@ from src.ingestion.parse_loader import ParseLoader
 from src.qa.rag_pipeline import RAGPipeline
 from src.retrieval.retriever import Retriever
 from src.retrieval.vector_index import VectorIndex
+from src.tracing import TraceLogger
 
 console = Console()
+trace_logger = TraceLogger()
 
 
 @click.group()
@@ -119,7 +121,24 @@ def ask(rulebook: str, question: str, top_k: int, index_path: str, no_cache: boo
 
         progress.add_task("Generating answer...", total=None)
         pipeline = RAGPipeline(retriever, graph=graph)
-        response = pipeline.answer(question, top_k=top_k)
+        last_retrieved = []
+
+        def on_retrieved(retrieved):
+            last_retrieved.append(retrieved)
+
+        response = pipeline.answer(
+            question, top_k=top_k, on_retrieved=on_retrieved
+        )
+
+        if last_retrieved:
+            trace_logger.log_qa_trace(
+                question=question,
+                answer=response.answer,
+                confidence=response.confidence,
+                top_k=top_k,
+                retrieved=last_retrieved[0],
+                source_path=str(rulebook_path),
+            )
 
     console.print()
     console.print(Panel(f"[bold]Question:[/bold] {question}", border_style="blue"))
@@ -236,6 +255,68 @@ def info(rulebook: str):
     if pages_with_mini:
         console.print()
         console.print(f"[bold]Blocks in mini-pages:[/bold] {pages_with_mini}")
+
+
+@cli.command("last-chunks")
+@click.option(
+    "--full",
+    is_flag=True,
+    help="Print full chunk text instead of a preview.",
+)
+@click.option(
+    "--trace-id",
+    type=click.UUID,
+    default=None,
+    help="Show a specific trace by ID (from DB). Default is the last query.",
+)
+def last_chunks(full: bool, trace_id):
+    """Show the chunks retrieved for the last query (for debugging and review)."""
+    if trace_id is not None:
+        record = trace_logger.get_trace(trace_id)
+    else:
+        record = trace_logger.get_last_trace()
+
+    if record is None:
+        console.print("[yellow]No trace found. Run [bold]ask[/bold] first.[/yellow]")
+        return
+
+    preview_len = 400 if not full else None
+    created = record.created_at.strftime("%Y-%m-%d %H:%M:%S UTC")
+
+    console.print()
+    console.print(Panel(record.question, title="Question", border_style="blue"))
+    console.print()
+    console.print(
+        Panel(
+            record.answer if len(record.answer) <= 500 else record.answer[:500] + "...",
+            title="Answer (excerpt)" if len(record.answer) > 500 else "Answer",
+            border_style="green",
+        )
+    )
+    console.print()
+    console.print(
+        f"[dim]Trace: {record.trace_id} | {created} | "
+        f"confidence {record.confidence:.0%} | top_k={record.top_k}[/dim]"
+    )
+    if record.source_path:
+        console.print(f"[dim]Source: {record.source_path}[/dim]")
+    console.print()
+    console.print(Panel("Retrieved chunks", border_style="cyan"))
+    console.print()
+
+    for c in record.chunks:
+        page_ref = f"p.{c.pdf_page + 1}"
+        if c.mini_page is not None:
+            page_ref += f" (section {c.mini_page + 1})"
+        heading = f" — [bold]{c.heading}[/bold]" if c.heading else ""
+        console.print(f"  [bold]#{c.rank}[/bold]  {page_ref}  score={c.similarity_score:.3f}{heading}")
+        text = c.chunk_text
+        if preview_len and len(text) > preview_len:
+            text = text[:preview_len] + " [...]"
+        console.print(f"  [dim]{text}[/dim]")
+        console.print()
+
+    console.print(f"[dim]{len(record.chunks)} chunk(s)[/dim]")
 
 
 def _estimate_page_dimensions(blocks: list) -> dict:

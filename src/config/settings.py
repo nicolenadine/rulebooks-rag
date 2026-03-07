@@ -32,9 +32,7 @@ class Settings(BaseSettings):
     openai_api_key: str
     openai_embedding_model: str = "text-embedding-3-small"
     openai_chat_model: str = "gpt-4o"
-
-    # -------------------------------------------------------------------------
-    # PostgreSQL Database
+ 
     # -------------------------------------------------------------------------
     postgres_host: str = "localhost"
     postgres_port: int = 5432
@@ -68,6 +66,11 @@ class Settings(BaseSettings):
     # Reducto API (PDF parsing)
     # -------------------------------------------------------------------------
     reducto_api_key: Optional[str] = None
+
+    # -------------------------------------------------------------------------
+    # Traceability (query/chunk logging for debugging)
+    # -------------------------------------------------------------------------
+    trace_last_query_path: str = "data/processed/last_qa_trace.json"
 
     # -------------------------------------------------------------------------
     # Environment & Logging

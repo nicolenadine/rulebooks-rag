@@ -215,3 +215,64 @@ class ChunkBlockModel(Base):
         Index("idx_chunk_blocks_chunk", "chunk_id"),
         Index("idx_chunk_blocks_block", "block_id"),
     )
+
+
+class QueryTraceModel(Base):
+    """SQLAlchemy model for query_traces table."""
+
+    __tablename__ = "query_traces"
+
+    trace_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), primary_key=True, server_default="uuid_generate_v4()"
+    )
+    question: Mapped[str] = mapped_column(Text, nullable=False)
+    answer: Mapped[str] = mapped_column(Text, nullable=False)
+    top_k: Mapped[int] = mapped_column(Integer, nullable=False)
+    confidence: Mapped[float] = mapped_column(Float, nullable=False)
+    document_id: Mapped[Optional[UUID]] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("documents.document_id", ondelete="SET NULL"), nullable=True
+    )
+    source_path: Mapped[Optional[str]] = mapped_column(String(1024), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default="CURRENT_TIMESTAMP"
+    )
+
+    chunk_rows: Mapped[list["QueryTraceChunkModel"]] = relationship(
+        "QueryTraceChunkModel", back_populates="trace", cascade="all, delete-orphan"
+    )
+
+    __table_args__ = (
+        CheckConstraint("top_k >= 1", name="check_trace_top_k"),
+        CheckConstraint("confidence >= 0 AND confidence <= 1", name="check_trace_confidence"),
+        Index("idx_query_traces_created_at", "created_at"),
+        Index("idx_query_traces_document", "document_id"),
+    )
+
+
+class QueryTraceChunkModel(Base):
+    """SQLAlchemy model for query_trace_chunks table."""
+
+    __tablename__ = "query_trace_chunks"
+
+    trace_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True),
+        ForeignKey("query_traces.trace_id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    chunk_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), nullable=False)
+    rank: Mapped[int] = mapped_column(Integer, primary_key=True)
+    similarity_score: Mapped[float] = mapped_column(Float, nullable=False)
+    pdf_page: Mapped[int] = mapped_column(Integer, nullable=False)
+    mini_page: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    heading: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    chunk_text: Mapped[str] = mapped_column(Text, nullable=False)
+
+    trace: Mapped["QueryTraceModel"] = relationship(
+        "QueryTraceModel", back_populates="chunk_rows"
+    )
+
+    __table_args__ = (
+        CheckConstraint("rank >= 1", name="check_trace_chunk_rank"),
+        CheckConstraint("pdf_page >= 0", name="check_trace_chunk_pdf_page"),
+        Index("idx_query_trace_chunks_trace", "trace_id"),
+    )

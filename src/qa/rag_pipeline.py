@@ -1,6 +1,6 @@
 """RAG pipeline for question answering with citations."""
 
-from typing import Optional
+from typing import Callable, Optional
 
 from openai import OpenAI
 
@@ -52,6 +52,7 @@ Format your response as:
         question: str,
         top_k: int = 5,
         expand_context: bool = True,
+        on_retrieved: Optional[Callable[[list[tuple[Chunk, float, list[Block]]]], None]] = None,
     ) -> QAResponse:
         """Answer a question about the rulebook.
 
@@ -59,6 +60,8 @@ Format your response as:
             question: The user's question.
             top_k: Number of chunks to retrieve.
             expand_context: Whether to expand context using the graph.
+            on_retrieved: Optional callback invoked with the retrieved list
+                (chunk, score, context_blocks) for each result. Used for traceability.
 
         Returns:
             QAResponse with answer and citations.
@@ -68,6 +71,9 @@ Format your response as:
             top_k=top_k,
             expand_context=expand_context,
         )
+
+        if on_retrieved is not None:
+            on_retrieved(retrieved)
 
         context = self._build_context(retrieved)
 

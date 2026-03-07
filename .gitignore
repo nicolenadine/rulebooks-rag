@@ -51,7 +51,10 @@ htmlcov/
 
 # Environment
 .env
-.env.local
+.env.*
+
+# Except the example template
+!.env.example
 
 # Data (keep structure, ignore contents)
 data/raw/*

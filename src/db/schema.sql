@@ -134,3 +134,34 @@ SELECT
 FROM chunks c
 LEFT JOIN chunk_blocks cb ON c.chunk_id = cb.chunk_id
 GROUP BY c.chunk_id;
+
+-- -----------------------------------------------------------------------------
+-- Query traceability (for debugging and reviewing answer quality)
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS query_traces (
+    trace_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    question TEXT NOT NULL,
+    answer TEXT NOT NULL,
+    top_k INTEGER NOT NULL CHECK (top_k >= 1),
+    confidence FLOAT NOT NULL CHECK (confidence >= 0 AND confidence <= 1),
+    document_id UUID REFERENCES documents(document_id) ON DELETE SET NULL,
+    source_path VARCHAR(1024),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_query_traces_created_at ON query_traces(created_at DESC);
+CREATE INDEX idx_query_traces_document ON query_traces(document_id);
+
+CREATE TABLE IF NOT EXISTS query_trace_chunks (
+    trace_id UUID NOT NULL REFERENCES query_traces(trace_id) ON DELETE CASCADE,
+    chunk_id UUID NOT NULL,
+    rank INTEGER NOT NULL CHECK (rank >= 1),
+    similarity_score FLOAT NOT NULL,
+    pdf_page INTEGER NOT NULL CHECK (pdf_page >= 0),
+    mini_page INTEGER,
+    heading VARCHAR(512),
+    chunk_text TEXT NOT NULL,
+    PRIMARY KEY (trace_id, rank)
+);
+
+CREATE INDEX idx_query_trace_chunks_trace ON query_trace_chunks(trace_id);

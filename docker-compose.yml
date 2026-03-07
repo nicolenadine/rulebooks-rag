@@ -1,0 +1,25 @@
+# Local PostgreSQL for development.
+# Credentials are read from .env (POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB).
+# After starting: uv run python scripts/init_db.py
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: rulebook-rag-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-rulebook}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rulebook}
+      POSTGRES_DB: ${POSTGRES_DB:-rulebook_rag}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-rulebook} -d ${POSTGRES_DB:-rulebook_rag}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

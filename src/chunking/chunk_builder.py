@@ -1,5 +1,6 @@
 """Build semantic chunks from document blocks."""
 
+from typing import Optional
 from uuid import uuid4
 
 import tiktoken

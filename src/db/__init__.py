@@ -1,7 +1,15 @@
 """Database module for PostgreSQL storage."""
 
 from src.db.database import Database, get_database
-from src.db.models import BlockModel, ChunkBlockModel, ChunkModel, DocumentModel, EdgeModel
+from src.db.models import (
+    BlockModel,
+    ChunkBlockModel,
+    ChunkModel,
+    DocumentModel,
+    EdgeModel,
+    QueryTraceChunkModel,
+    QueryTraceModel,
+)
 
 __all__ = [
     "Database",
@@ -11,4 +19,6 @@ __all__ = [
     "ChunkModel",
     "DocumentModel",
     "EdgeModel",
+    "QueryTraceChunkModel",
+    "QueryTraceModel",
 ]

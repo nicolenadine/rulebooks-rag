@@ -67,16 +67,44 @@ cp .env.example .env
 uv run pre-commit install
 ```
 
-### Database Setup (Optional)
+### Local Development Setup
 
-For persistent storage, run PostgreSQL using Docker:
+To run the app with a local PostgreSQL database (for the document graph, traceability, etc.):
+
+1. **Copy environment file** (if you haven’t already):
+
+   ```bash
+   cp .env.example .env
+   ```
+
+   Ensure `.env` includes `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGRES_DB` (used by Docker and the app).
+
+2. **Start Postgres**:
+
+   ```bash
+   docker compose up -d
+   ```
+
+   This starts PostgreSQL on port 5432 and persists data in a Docker volume. Credentials are read from `.env`.
+
+3. **Initialize the database**:
+
+   ```bash
+   uv run python scripts/init_db.py
+   ```
+
+   This applies the schema in `src/db/schema.sql`. Run once after the first `docker compose up -d`.
+
+After this, the app connects using `settings.postgres_url` (from `src.config.settings`), which is built from `POSTGRES_*` in `.env`.
+
+### Database Setup (Optional, alternate)
+
+The `docker/` directory also contains a Compose file that can mount the schema on first run and optionally start pgAdmin:
 
 ```bash
 cd docker
 docker-compose up -d
 ```
-
-This starts PostgreSQL on port 5432 with the schema automatically initialized.
 
 To also run pgAdmin for database management:
 
@@ -176,8 +204,10 @@ rulebook-rag/
 │
 ├── tests/                  # Test suite
 ├── notebooks/              # Jupyter notebooks for exploration
+├── scripts/                # Dev/setup scripts (e.g. init_db.py)
 ├── docker/                 # Docker configuration
 │
+├── docker-compose.yml      # Local Postgres (root)
 ├── main.py                 # CLI entry point
 ├── pyproject.toml          # Project configuration
 └── README.md
@@ -284,10 +314,12 @@ uv run pre-commit run --all-files
 
 ## Environment Variables
 
+The app loads configuration via **`src.config.settings`** (Pydantic Settings). All code uses `from src.config import settings` and connects to the database with **`settings.postgres_url`** (built from `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`). Do not rely on `os.getenv()` for these values.
+
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `OPENAI_API_KEY` | OpenAI API key for embeddings and LLM | Required |
-| `DATABASE_URL` | PostgreSQL connection string | `postgresql://localhost:5432/rulebook_rag` |
+| `POSTGRES_*` | PostgreSQL connection (host, port, db, user, password) | See `.env.example`; `settings.postgres_url` is used for connections |
 
 ## License
 
