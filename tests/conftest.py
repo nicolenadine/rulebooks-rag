@@ -1,11 +1,21 @@
 """Pytest configuration and fixtures."""
 
 import os
+from pathlib import Path
 from uuid import uuid4
 
 import pytest
 
-# Set test environment variables before importing settings
+# Load .env from project root first so a real OPENAI_API_KEY is used when present.
+# Only then set test defaults for keys that are still missing (e.g. in CI).
+try:
+    from dotenv import load_dotenv
+    _env_path = Path(__file__).resolve().parent.parent / ".env"
+    load_dotenv(_env_path)
+except Exception:
+    pass
+
+# Set test environment variables only when not already set (e.g. by .env)
 os.environ.setdefault("OPENAI_API_KEY", "test-api-key-for-testing")
 os.environ.setdefault("POSTGRES_HOST", "localhost")
 os.environ.setdefault("POSTGRES_PORT", "5432")

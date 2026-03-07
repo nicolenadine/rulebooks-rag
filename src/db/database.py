@@ -75,12 +75,13 @@ class Database:
             conn.commit()
 
     def save_document(self, document: Document) -> UUID:
-        """Save a document to the database."""
+        """Save a document to the database (source_path stored in canonical form)."""
+        canonical_source = str(Path(document.source_path).resolve())
         with self.session() as session:
             model = DocumentModel(
                 document_id=document.document_id,
                 name=document.name,
-                source_path=document.source_path,
+                source_path=canonical_source,
                 total_pages=document.total_pages,
                 metadata_=document.metadata,
             )
@@ -151,12 +152,17 @@ class Database:
             return model.chunk_id
 
     def save_document_graph(self, graph: DocumentGraph) -> UUID:
-        """Save an entire document graph to the database."""
+        """Save an entire document graph to the database.
+
+        document.source_path is stored in canonical form (str(Path(...).resolve()))
+        so lookups by source_path match across runs.
+        """
+        canonical_source = str(Path(graph.document.source_path).resolve())
         with self.session() as session:
             doc_model = DocumentModel(
                 document_id=graph.document.document_id,
                 name=graph.document.name,
-                source_path=graph.document.source_path,
+                source_path=canonical_source,
                 total_pages=graph.document.total_pages,
                 metadata_=graph.document.metadata,
             )
@@ -240,6 +246,28 @@ class Database:
                 edges.append(edge)
 
             return DocumentGraph(document=document, blocks=blocks, edges=edges)
+
+    def get_document_by_source_path(self, source_path: str) -> Optional[UUID]:
+        """Return document_id for a document with the given source_path, or None.
+
+        source_path is normalized to a canonical absolute form so that relative vs
+        absolute paths match (e.g. data/parsed/x.json vs /Users/.../data/parsed/x.json).
+        """
+        canonical = str(Path(source_path).resolve())
+        with self.session() as session:
+            model = (
+                session.query(DocumentModel)
+                .filter(DocumentModel.source_path == canonical)
+                .first()
+            )
+            return model.document_id if model else None
+
+    def update_chunk_embedding(self, chunk_id: UUID, embedding: list[float]) -> None:
+        """Update the embedding for an existing chunk."""
+        with self.session() as session:
+            session.query(ChunkModel).filter(ChunkModel.chunk_id == chunk_id).update(
+                {ChunkModel.embedding: embedding}
+            )
 
     def get_chunks_by_document(self, document_id: UUID) -> list[Chunk]:
         """Get all chunks for a document."""
